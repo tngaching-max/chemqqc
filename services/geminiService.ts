@@ -4,7 +4,12 @@ import { AnalysisResult, Rubric, Example } from "../types";
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash",
+  generationConfig: {
+    temperature: 0.1,
+  }
+});
 
 // Add Type enum
 enum Type {
@@ -124,15 +129,11 @@ export const extractQuestionText = async (input: string | FileInput): Promise<st
 
   try {
     const response = await model.generateContent({
-      model: "gemini-2.5-flash",
       contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.1, // Low temperature for accurate transcription
-      },
+      systemInstruction: systemInstruction,
     });
 
-    return response.text?.trim() || "";
+    return response.response.text() || "";
   } catch (error) {
     console.error("Extraction Error:", error);
     throw new Error("Failed to extract text from file.");
@@ -167,15 +168,11 @@ export const extractRubricCriteria = async (input: string | FileInput): Promise<
 
   try {
     const response = await model.generateContent({
-      model: "gemini-2.5-flash",
       contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.1,
-      },
+      systemInstruction: systemInstruction,
     });
 
-    return response.text?.trim() || "";
+    return response.response.text() || "";
   } catch (error) {
     console.error("Rubric Extraction Error:", error);
     throw new Error("Failed to extract rubric criteria from file.");
@@ -219,10 +216,9 @@ export const extractAndClassifyQuestions = async (
 
   try {
     const response = await model.generateContent({
-      model: "gemini-2.5-flash",
       contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
+      systemInstruction: systemInstruction,
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -239,7 +235,7 @@ export const extractAndClassifyQuestions = async (
       },
     });
 
-    const text = response.text;
+    const text = response.response.text();
     if (!text) return [];
     
     return JSON.parse(text) as Omit<Example, 'id'>[];
@@ -309,10 +305,9 @@ export const analyzeQuestion = async (
 
   try {
     const response = await model.generateContent({
-      model: "gemini-2.5-flash",
       contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
+      systemInstruction: systemInstruction,
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -352,7 +347,7 @@ export const analyzeQuestion = async (
       },
     });
 
-    const text = response.text;
+    const text = response.response.text();
     if (!text) {
       throw new Error("No response from AI");
     }
